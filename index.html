@@ -1,47 +1,70 @@
-<script src="script.js"></script>
-
-<style>
-    body {
-        background-image: url('map_scotland.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-    }
-    
-    #glasgow {
-        top: 71%;
-        left: 49%;
-        transform: translate(-50%, -50%);
-    }
-    
-    #edinburgh {
-        top: 72%;
-        left: 63%;
-        transform: translate(-50%, -50%);
-    }
-    
-    .sunny {
-        position: absolute;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-image: url('sunny.png');
-        /* make the color white transparent */
-        width: 50px;
-        height: 50px;
-    }
-    
-    .cloudy {
-        position: absolute;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-image: url('cloudy.png');
-        width: 50px;
-        height: 50px;
-    }
-</style>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro:bit Weather Station - Scotland</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #map-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-image: url('map_scotland.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            background-color: #f0f0f0; /* Fallback color */
+        }
+        .city {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: move;
+        }
+        .city-label {
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+            text-align: center;
+            user-select: none;
+        }
+        .city-label input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+        }
+        .sunny { background-color: rgba(255, 255, 0, 0.7); }
+        .cloudy { background-color: rgba(128, 128, 128, 0.7); }
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: rgba(240, 240, 240, 0.8);
+            border-radius: 5px;
+        }
+    </style>
+</head>
 <body>
-<button onclick="connect()">Connect</button>
-<div class="sunny" id="glasgow"></div>
-<div class="cloudy" id="edinburgh"></div>
+    <div id="map-container"></div>
+    <div id="controls">
+        <button onclick="connect()">Connect to Micro:bit</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.17/interact.min.js"></script>
+    <script src="script.js"></script>
 </body>
+</html>
