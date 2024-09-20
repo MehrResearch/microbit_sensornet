@@ -119,6 +119,7 @@ function addCity(cityName, deviceId) {
     
     const cityElement = document.createElement('div');
     cityElement.className = 'city';
+    cityElement.style.backgroundImage = 'url("question-mark.svg")';
     
     const labelElement = document.createElement('div');
     labelElement.className = 'city-label';
