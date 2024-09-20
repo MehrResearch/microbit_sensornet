@@ -21,15 +21,17 @@
             background-size: contain;
             background-color: #f0f0f0;
         }
-        .city {
+        .city-container {
             position: absolute;
+            cursor: move;
+        }
+        .city {
             width: 60px;
             height: 60px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: move;
             background-size: cover;
             background-position: center;
         }
@@ -74,8 +76,7 @@
             100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
         .earthquake {
-            animation: shake 0.5s;
-            animation-iteration-count: infinite;
+            animation: shake 0.5s infinite;
         }
         #controls {
             position: absolute;

@@ -61,12 +61,13 @@ function onTxCharacteristicValueChanged(name, event) {
     }
 }
 
-function updateCityVisual(cityElement, data) {
-    // Store the current background image before making any changes
-    const currentBackgroundImage = cityElement.style.backgroundImage;
-
+function updateCityVisual(cityContainer, data) {
+    const cityElement = cityContainer.querySelector('.city');
+    const labelElement = cityContainer.querySelector('.city-label');
+    
     // Remove previous classes and overlays
     cityElement.classList.remove('earthquake');
+    labelElement.classList.remove('earthquake');
     const existingOverlay = cityElement.querySelector('.weather-overlay');
     if (existingOverlay) {
         existingOverlay.remove();
@@ -76,17 +77,11 @@ function updateCityVisual(cityElement, data) {
         // Earthquake
         const previousBackgroundImage = cityElement.style.backgroundImage;
         cityElement.style.backgroundImage = 'url("earthquake.svg")';
-        // Store the current transform
-        const currentTransform = cityElement.style.transform;
-        // Add earthquake class
         cityElement.classList.add('earthquake');
-        // Combine the current transform with the shake animation
-        cityElement.style.animation = `shake 0.5s infinite, ${currentTransform}`;
+        labelElement.classList.add('earthquake');
         setTimeout(() => {
             cityElement.classList.remove('earthquake');
-            cityElement.style.animation = '';
-            cityElement.style.transform = currentTransform;
-            // Restore the previous background image
+            labelElement.classList.remove('earthquake');
             cityElement.style.backgroundImage = previousBackgroundImage;
         }, 5000);
     } else if (data.startsWith('T')) {
@@ -119,19 +114,28 @@ function addOverlay(cityElement, imageName) {
 
 function addCity(cityName, deviceId) {
     const mapContainer = document.getElementById('map-container');
+    const cityContainer = document.createElement('div');
+    cityContainer.className = 'city-container';
+    
     const cityElement = document.createElement('div');
     cityElement.className = 'city';
-    cityElement.innerHTML = `<span class="city-label">${cityName}</span>`;
+    
+    const labelElement = document.createElement('div');
+    labelElement.className = 'city-label';
+    labelElement.textContent = cityName;
+    
+    cityContainer.appendChild(cityElement);
+    cityContainer.appendChild(labelElement);
     
     // Set initial position (you may want to adjust these values)
-    cityElement.style.left = '50%';
-    cityElement.style.top = '50%';
+    cityContainer.style.left = '50%';
+    cityContainer.style.top = '50%';
     
-    mapContainer.appendChild(cityElement);
-    window.cityMap.set(deviceId, cityElement);
+    mapContainer.appendChild(cityContainer);
+    window.cityMap.set(deviceId, cityContainer);
 
-    makeDraggable(cityElement);
-    makeEditable(cityElement);
+    makeDraggable(cityContainer);
+    makeEditable(labelElement);
 }
 
 function makeDraggable(element) {
@@ -162,22 +166,20 @@ function dragMoveListener(event) {
 }
 
 function makeEditable(element) {
-    const label = element.querySelector('.city-label');
-    
     element.addEventListener('dblclick', function() {
         const input = document.createElement('input');
-        input.value = label.textContent;
-        label.textContent = '';
-        label.appendChild(input);
+        input.value = this.textContent;
+        this.textContent = '';
+        this.appendChild(input);
         input.focus();
 
         input.addEventListener('blur', function() {
-            label.textContent = this.value;
+            element.textContent = this.value;
         });
 
         input.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                label.textContent = this.value;
+                element.textContent = this.value;
             }
         });
     });
