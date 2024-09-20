@@ -53,9 +53,10 @@ function onTxCharacteristicValueChanged(name, event) {
     const receivedString = String.fromCharCode.apply(null, receivedData);
     console.log(`Received data from ${name}: ${receivedString}`);
     
-    const cityElement = window.cityMap.get(name);
-    if (cityElement) {
-        updateCityVisual(cityElement, receivedString);
+    const cityContainer = window.cityMap.get(name);
+    if (cityContainer) {
+        updateCityVisual(cityContainer, receivedString);
+        updateTerminal(name, receivedString);
     } else {
         console.log(`No city found for device: ${name}`);
     }
@@ -184,4 +185,40 @@ function makeEditable(element) {
             }
         });
     });
+}
+
+function updateTerminal(cityName, message) {
+    const terminal = document.getElementById('terminal');
+    const now = new Date();
+    const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    
+    let interpretation = '';
+    if (message === 'S') {
+        interpretation = 'Earthquake detected!';
+    } else if (message.startsWith('T')) {
+        const temp = parseInt(message.slice(1));
+        interpretation = `${temp} ºC`;
+    } else if (message.startsWith('L')) {
+        const light = parseInt(message.slice(1));
+        if (light < DARK) {
+            interpretation = 'Dark';
+        } else if (light > LIGHT) {
+            interpretation = 'Bright';
+        } else {
+            interpretation = 'Normal light';
+        }
+    }
+
+    const logEntry = document.createElement('p');
+    logEntry.innerHTML = `<span class="time">${time}</span> <span class="city-name">${cityName}</span> <span class="message">${message}</span> <span class="arrow">=></span> <span class="interpretation">${interpretation}</span>`;
+    
+    terminal.appendChild(logEntry);
+    
+    // Keep only the last 10 messages
+    while (terminal.children.length > 10) {
+        terminal.removeChild(terminal.firstChild);
+    }
+    
+    // Scroll to the bottom
+    terminal.scrollTop = terminal.scrollHeight;
 }
