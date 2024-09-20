@@ -188,7 +188,7 @@ function makeEditable(element) {
 }
 
 function updateTerminal(cityName, message) {
-    const terminal = document.getElementById('terminal');
+    const terminalContent = document.getElementById('terminal-content');
     const now = new Date();
     const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     
@@ -212,13 +212,43 @@ function updateTerminal(cityName, message) {
     const logEntry = document.createElement('p');
     logEntry.innerHTML = `<span class="time">${time}</span> <span class="city-name">${cityName}</span> <span class="message">${message}</span> <span class="arrow">=></span> <span class="interpretation">${interpretation}</span>`;
     
-    terminal.appendChild(logEntry);
-    
-    // Keep only the last 10 messages
-    while (terminal.children.length > 10) {
-        terminal.removeChild(terminal.firstChild);
-    }
+    terminalContent.appendChild(logEntry);
     
     // Scroll to the bottom
-    terminal.scrollTop = terminal.scrollHeight;
+    terminalContent.scrollTop = terminalContent.scrollHeight;
 }
+
+// Make the terminal draggable
+interact('#terminal')
+  .draggable({
+    allowFrom: '#terminal-header',
+    listeners: {
+      move(event) {
+        const target = event.target;
+        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+        target.style.transform = `translate(${x}px, ${y}px)`;
+        target.setAttribute('data-x', x);
+        target.setAttribute('data-y', y);
+      }
+    }
+  })
+  .resizable({
+    edges: { bottom: true, right: true },
+    listeners: {
+      move(event) {
+        let { x, y } = event.target.dataset;
+        x = (parseFloat(x) || 0) + event.deltaRect.left;
+        y = (parseFloat(y) || 0) + event.deltaRect.top;
+
+        Object.assign(event.target.style, {
+          width: `${event.rect.width}px`,
+          height: `${event.rect.height}px`,
+          transform: `translate(${x}px, ${y}px)`
+        });
+
+        Object.assign(event.target.dataset, { x, y });
+      }
+    }
+  });

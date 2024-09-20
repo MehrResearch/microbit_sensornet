@@ -94,7 +94,7 @@
             left: 20px;
             width: 300px;
             height: 200px;
-            background-color: rgba(0, 0, 0, 0.9); /* Darker background */
+            background-color: rgba(0, 0, 0, 0.9);
             color: #00ff00;
             font-family: 'Fira Code', 'Courier New', monospace;
             font-size: 12px;
@@ -103,6 +103,19 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
             line-height: 1.2;
+            resize: both;
+        }
+        #terminal-header {
+            padding: 5px;
+            cursor: move;
+            background-color: rgba(0, 255, 0, 0.2);
+            border-bottom: 1px solid #00ff00;
+            margin-bottom: 5px;
+        }
+        #terminal-content {
+            height: calc(100% - 30px);
+            overflow-y: auto;
+            scrollbar-width: none;
         }
         #terminal p {
             margin: 0;
@@ -121,7 +134,10 @@
 </head>
 <body>
     <div id="map-container"></div>
-    <div id="terminal"></div>
+    <div id="terminal">
+        <div id="terminal-header">Terminal</div>
+        <div id="terminal-content"></div>
+    </div>
     <div id="controls">
         <button onclick="connect()">Connect to Micro:bit</button>
     </div>
