@@ -4,10 +4,10 @@ const UART_RX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
 const name_regex = /BBC micro:bit \[(.*)\]/;
 
-const HOT_TEMP = 25;
+const HOT_TEMP = 24;
 const COLD_TEMP = 20;
 const DARK = 50;
-const LIGHT = 120;
+const LIGHT = 150;
 
 window.devices = new Map();
 window.cityMap = new Map();
@@ -66,13 +66,9 @@ function updateCityVisual(cityContainer, data) {
     const cityElement = cityContainer.querySelector('.city');
     const labelElement = cityContainer.querySelector('.city-label');
     
-    // Remove previous classes and overlays
+    // Remove earthquake classes if present
     cityElement.classList.remove('earthquake');
     labelElement.classList.remove('earthquake');
-    const existingOverlay = cityElement.querySelector('.weather-overlay');
-    if (existingOverlay) {
-        existingOverlay.remove();
-    }
 
     if (data === 'S') {
         // Earthquake
@@ -85,17 +81,13 @@ function updateCityVisual(cityContainer, data) {
             labelElement.classList.remove('earthquake');
             cityElement.style.backgroundImage = previousBackgroundImage;
         }, 5000);
-    } else if (data.startsWith('T')) {
+    } else if (data.startsWith('temperature:')) {
         // Temperature
-        const temp = parseInt(data.slice(1));
-        if (temp > HOT_TEMP) {
-            addOverlay(cityElement, 'thermometer_hot.png');
-        } else if (temp < COLD_TEMP) {
-            addOverlay(cityElement, 'snowflake.png');
-        }
-    } else if (data.startsWith('L')) {
+        const temp = parseInt(data.split(':')[1]);
+        updateOverlay(cityElement, temp > HOT_TEMP ? 'thermometer_hot.png' : (temp < COLD_TEMP ? 'snowflake.png' : null));
+    } else if (data.startsWith('light:')) {
         // Light
-        const light = parseInt(data.slice(1));
+        const light = parseInt(data.split(':')[1]);
         if (light < DARK) {
             cityElement.style.backgroundImage = 'url("grey_clouds.png")';
         } else if (light > LIGHT) {
@@ -103,6 +95,20 @@ function updateCityVisual(cityContainer, data) {
         } else {
             cityElement.style.backgroundImage = 'url("some_clouds.png")';
         }
+    }
+}
+
+function updateOverlay(cityElement, overlayImage) {
+    let overlay = cityElement.querySelector('.weather-overlay');
+    if (overlayImage) {
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'weather-overlay';
+            cityElement.appendChild(overlay);
+        }
+        overlay.style.backgroundImage = `url("${overlayImage}")`;
+    } else if (overlay) {
+        overlay.remove();
     }
 }
 
@@ -195,11 +201,18 @@ function updateTerminal(cityName, message) {
     let interpretation = '';
     if (message === 'S') {
         interpretation = 'Earthquake detected!';
-    } else if (message.startsWith('T')) {
-        const temp = parseInt(message.slice(1));
+    } else if (message.startsWith('temperature:')) {
+        const temp = parseInt(message.split(':')[1]);
         interpretation = `${temp} ºC`;
-    } else if (message.startsWith('L')) {
-        const light = parseInt(message.slice(1));
+        if (temp > HOT_TEMP) {
+            interpretation += ' (Hot)';
+        } else if (temp < COLD_TEMP) {
+            interpretation += ' (Cold)';
+        } else {
+            interpretation += ' (Normal)';
+        }
+    } else if (message.startsWith('light:')) {
+        const light = parseInt(message.split(':')[1]);
         if (light < DARK) {
             interpretation = 'Dark';
         } else if (light > LIGHT) {
@@ -207,6 +220,7 @@ function updateTerminal(cityName, message) {
         } else {
             interpretation = 'Normal light';
         }
+        interpretation += ` (${light})`;
     }
 
     const logEntry = document.createElement('p');
