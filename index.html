@@ -1,5 +1,47 @@
 <script src="script.js"></script>
 
+<style>
+    body {
+        background-image: url('map_scotland.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+    
+    #glasgow {
+        top: 71%;
+        left: 49%;
+        transform: translate(-50%, -50%);
+    }
+    
+    #edinburgh {
+        top: 72%;
+        left: 63%;
+        transform: translate(-50%, -50%);
+    }
+    
+    .sunny {
+        position: absolute;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-image: url('sunny.png');
+        /* make the color white transparent */
+        width: 50px;
+        height: 50px;
+    }
+    
+    .cloudy {
+        position: absolute;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-image: url('cloudy.png');
+        width: 50px;
+        height: 50px;
+    }
+</style>
+
 <body>
-    <button onclick="connect()">Connect</button>
+<button onclick="connect()">Connect</button>
+<div class="sunny" id="glasgow"></div>
+<div class="cloudy" id="edinburgh"></div>
 </body>

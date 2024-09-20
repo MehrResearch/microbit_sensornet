@@ -56,4 +56,7 @@ function onTxCharacteristicValueChanged(name, event) {
 
     const receivedString = String.fromCharCode.apply(null, receivedData);
     console.log(`Received data from ${name}: ${receivedString}`);
+    const cls = (receivedString === 'A' ? 'sunny' : 'cloudy');
+    const city = (name === 'zatev' ? 'edinburgh' : 'glasgow');
+    document.getElementById(city).className = cls;
 }
