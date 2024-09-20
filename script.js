@@ -4,6 +4,11 @@ const UART_RX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
 const name_regex = /BBC micro:bit \[(.*)\]/;
 
+const HOT_TEMP = 25;
+const COLD_TEMP = 20;
+const DARK = 50;
+const LIGHT = 120;
+
 window.devices = new Map();
 window.cityMap = new Map();
 
@@ -47,20 +52,60 @@ function onTxCharacteristicValueChanged(name, event) {
 
     const receivedString = String.fromCharCode.apply(null, receivedData);
     console.log(`Received data from ${name}: ${receivedString}`);
-    const cls = (receivedString === 'A' ? 'sunny' : 'cloudy');
     
     const cityElement = window.cityMap.get(name);
     if (cityElement) {
-        cityElement.className = `city ${cls}`;
+        updateCityVisual(cityElement, receivedString);
     } else {
         console.log(`No city found for device: ${name}`);
     }
 }
 
+function updateCityVisual(cityElement, data) {
+    // Remove previous classes and overlays
+    cityElement.className = 'city';
+    const existingOverlay = cityElement.querySelector('.weather-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+
+    if (data === 'S') {
+        // Earthquake
+        cityElement.style.backgroundImage = 'url("earthquake.png")';
+        cityElement.classList.add('earthquake');
+        setTimeout(() => cityElement.classList.remove('earthquake'), 5000);
+    } else if (data.startsWith('T')) {
+        // Temperature
+        const temp = parseInt(data.slice(1));
+        if (temp > HOT_TEMP) {
+            addOverlay(cityElement, 'thermometer_hot.png');
+        } else if (temp < COLD_TEMP) {
+            addOverlay(cityElement, 'snowflake.png');
+        }
+    } else if (data.startsWith('L')) {
+        // Light
+        const light = parseInt(data.slice(1));
+        if (light < DARK) {
+            cityElement.style.backgroundImage = 'url("grey_clouds.png")';
+        } else if (light > LIGHT) {
+            cityElement.style.backgroundImage = 'url("sunshine.png")';
+        } else {
+            cityElement.style.backgroundImage = 'url("some_clouds.png")';
+        }
+    }
+}
+
+function addOverlay(cityElement, imageName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'weather-overlay';
+    overlay.style.backgroundImage = `url("${imageName}")`;
+    cityElement.appendChild(overlay);
+}
+
 function addCity(cityName, deviceId) {
     const mapContainer = document.getElementById('map-container');
     const cityElement = document.createElement('div');
-    cityElement.className = 'city cloudy';
+    cityElement.className = 'city';
     cityElement.innerHTML = `<span class="city-label">${cityName}</span>`;
     
     // Set initial position (you may want to adjust these values)
@@ -124,5 +169,5 @@ function makeEditable(element) {
 }
 
 // Initialize default cities if needed
-addCity('Glasgow', 'zopot');
-addCity('Edinburgh', 'zatev');
+// addCity('Glasgow', 'zopot');
+// addCity('Edinburgh', 'zatev');
