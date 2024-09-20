@@ -62,8 +62,11 @@ function onTxCharacteristicValueChanged(name, event) {
 }
 
 function updateCityVisual(cityElement, data) {
+    // Store the current background image before making any changes
+    const currentBackgroundImage = cityElement.style.backgroundImage;
+
     // Remove previous classes and overlays
-    cityElement.className = 'city';
+    cityElement.classList.remove('earthquake');
     const existingOverlay = cityElement.querySelector('.weather-overlay');
     if (existingOverlay) {
         existingOverlay.remove();
@@ -71,9 +74,21 @@ function updateCityVisual(cityElement, data) {
 
     if (data === 'S') {
         // Earthquake
-        cityElement.style.backgroundImage = 'url("earthquake.png")';
+        const previousBackgroundImage = cityElement.style.backgroundImage;
+        cityElement.style.backgroundImage = 'url("earthquake.svg")';
+        // Store the current transform
+        const currentTransform = cityElement.style.transform;
+        // Add earthquake class
         cityElement.classList.add('earthquake');
-        setTimeout(() => cityElement.classList.remove('earthquake'), 5000);
+        // Combine the current transform with the shake animation
+        cityElement.style.animation = `shake 0.5s infinite, ${currentTransform}`;
+        setTimeout(() => {
+            cityElement.classList.remove('earthquake');
+            cityElement.style.animation = '';
+            cityElement.style.transform = currentTransform;
+            // Restore the previous background image
+            cityElement.style.backgroundImage = previousBackgroundImage;
+        }, 5000);
     } else if (data.startsWith('T')) {
         // Temperature
         const temp = parseInt(data.slice(1));
@@ -167,7 +182,3 @@ function makeEditable(element) {
         });
     });
 }
-
-// Initialize default cities if needed
-// addCity('Glasgow', 'zopot');
-// addCity('Edinburgh', 'zatev');
