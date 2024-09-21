@@ -53,16 +53,27 @@ function onTxCharacteristicValueChanged(name, event) {
     const receivedString = String.fromCharCode.apply(null, receivedData);
     console.log(`Received data from ${name}: ${receivedString}`);
     
-    const cityContainer = window.cityMap.get(name);
-    if (cityContainer) {
-        updateCityVisual(cityContainer, receivedString);
-        updateTerminal(name, receivedString);
+    const cityData = window.cityMap.get(name);
+    if (cityData) {
+        if (!cityData.isEarthquake || receivedString === 'S') {
+            updateCityVisual(name, receivedString);
+            updateTerminal(name, receivedString);
+        } else {
+            console.log(`Ignoring message for ${name} due to ongoing earthquake`);
+        }
     } else {
         console.log(`No city found for device: ${name}`);
     }
 }
 
-function updateCityVisual(cityContainer, data) {
+function updateCityVisual(deviceId, data) {
+    const cityData = window.cityMap.get(deviceId);
+    if (!cityData) {
+        console.log(`No city found for device: ${deviceId}`);
+        return;
+    }
+
+    const cityContainer = cityData.container;
     const cityElement = cityContainer.querySelector('.city');
     const labelElement = cityContainer.querySelector('.city-label');
     
@@ -76,10 +87,12 @@ function updateCityVisual(cityContainer, data) {
         cityElement.style.backgroundImage = 'url("earthquake.svg")';
         cityElement.classList.add('earthquake');
         labelElement.classList.add('earthquake');
+        cityData.isEarthquake = true;
         setTimeout(() => {
             cityElement.classList.remove('earthquake');
             labelElement.classList.remove('earthquake');
             cityElement.style.backgroundImage = previousBackgroundImage;
+            cityData.isEarthquake = false;
         }, 5000);
     } else if (data.startsWith('temperature:')) {
         // Temperature
@@ -140,7 +153,12 @@ function addCity(cityName, deviceId) {
     cityContainer.style.top = '50%';
     
     mapContainer.appendChild(cityContainer);
-    window.cityMap.set(deviceId, cityContainer);
+
+    // Store both the container and the state in cityMap
+    window.cityMap.set(deviceId, {
+        container: cityContainer,
+        isEarthquake: false
+    });
 
     makeDraggable(cityContainer);
     makeEditable(labelElement);
@@ -193,7 +211,8 @@ function makeEditable(element) {
     });
 }
 
-function updateTerminal(cityName, message) {
+function updateTerminal(deviceName, message) {
+    const cityName = window.cityMap.get(deviceName).container.querySelector('.city-label').textContent;
     const terminalContent = document.getElementById('terminal-content');
     const now = new Date();
     const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
