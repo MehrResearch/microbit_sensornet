@@ -19,6 +19,11 @@ async function connect() {
         filters: [{ namePrefix: "BBC micro:bit" }],
     });
 
+    device.addEventListener('gattserverdisconnected', async (event) => {
+        console.log('Device disconnected, attempting to reconnect...');
+        await reconnectWithBackoff(event.target);
+      });
+
     const name = device.name.match(name_regex)[1];
 
     const server = await device.gatt.connect();
@@ -43,6 +48,20 @@ async function connect() {
     console.log(`Connected to device: ${name}`);
     addCity(name, name);
 }
+
+async function reconnectWithBackoff(device, maxAttempts = 5) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        await device.gatt.connect();
+        console.log('Reconnected on attempt', attempt + 1);
+        return;
+      } catch (error) {
+        console.log('Reconnection attempt', attempt + 1, 'failed:', error);
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      }
+    }
+    console.log('Failed to reconnect after', maxAttempts, 'attempts');
+  }
 
 function onTxCharacteristicValueChanged(name, event) {
     let receivedData = [];
