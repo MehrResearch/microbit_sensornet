@@ -12,6 +12,18 @@ const LIGHT = 150;
 window.devices = new Map();
 window.cityMap = new Map();
 
+async function initializeCharacteristics(name, server) {
+    const service = await server.getPrimaryService(UART_SERVICE_UUID);
+    const rx_characteristic = await service.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
+    const tx_characteristic = await service.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
+
+    await tx_characteristic.startNotifications();
+    tx_characteristic.addEventListener("characteristicvaluechanged", 
+        (ev) => onTxCharacteristicValueChanged(name, ev));
+
+    return { service, rx_characteristic, tx_characteristic };
+}
+
 async function connect() {
     console.log("Connecting to micro:bit...");
     const device = await navigator.bluetooth.requestDevice({
@@ -22,20 +34,13 @@ async function connect() {
     device.addEventListener('gattserverdisconnected', async (event) => {
         console.log('Device disconnected, attempting to reconnect...');
         await reconnectWithBackoff(event.target);
-      });
+    });
 
     const name = device.name.match(name_regex)[1];
-
     const server = await device.gatt.connect();
-    console.log(`Available services: ${await server.getPrimaryServices()}`);
-
-    const service = await server.getPrimaryService(UART_SERVICE_UUID);
-
-    const rx_characteristic = await service.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
-    const tx_characteristic = await service.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
-
-    tx_characteristic.startNotifications();
-    tx_characteristic.addEventListener("characteristicvaluechanged", (ev) => onTxCharacteristicValueChanged(name, ev));
+    
+    const { service, rx_characteristic, tx_characteristic } = 
+        await initializeCharacteristics(name, server);
 
     window.devices.set(name, {
         device: device,
@@ -49,19 +54,42 @@ async function connect() {
     addCity(name, name);
 }
 
-async function reconnectWithBackoff(device, maxAttempts = 5) {
+async function reconnectWithBackoff(device, maxAttempts = 10) {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
-        await device.gatt.connect();
-        console.log('Reconnected on attempt', attempt + 1);
-        return;
-      } catch (error) {
-        console.log('Reconnection attempt', attempt + 1, 'failed:', error);
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-      }
+        try {
+            const server = await device.gatt.connect();
+            console.log('Reconnected on attempt', attempt + 1);
+            
+            // Find the device name from the devices map
+            const deviceEntry = Array.from(window.devices.entries())
+                .find(([_, d]) => d.device === device);
+            if (!deviceEntry) {
+                console.error('Could not find device in devices map');
+                return;
+            }
+            const name = deviceEntry[0];
+            
+            // Reinitialize characteristics
+            const { service, rx_characteristic, tx_characteristic } = 
+                await initializeCharacteristics(name, server);
+            
+            // Update device info
+            window.devices.set(name, {
+                device: device,
+                server: server,
+                service: service,
+                rx_characteristic: rx_characteristic,
+                tx_characteristic: tx_characteristic,
+            });
+            
+            return;
+        } catch (error) {
+            console.log('Reconnection attempt', attempt + 1, 'failed:', error);
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
     }
     console.log('Failed to reconnect after', maxAttempts, 'attempts');
-  }
+}
 
 function onTxCharacteristicValueChanged(name, event) {
     let receivedData = [];
