@@ -9,6 +9,8 @@ const COLD_TEMP = 20;
 const DARK = 50;
 const LIGHT = 150;
 
+const MAX_MESSAGES = 1000;
+
 window.devices = new Map();
 window.cityMap = new Map();
 
@@ -141,6 +143,11 @@ function updateCityVisual(deviceId, data) {
             cityElement.style.backgroundImage = previousBackgroundImage;
             cityData.isEarthquake = false;
         }, 5000);
+    } else if (data === 'A') {
+        // Reset position to center
+        cityContainer.style.transform = 'translate(0px, 0px)';
+        cityContainer.setAttribute('data-x', '0');
+        cityContainer.setAttribute('data-y', '0');
     } else if (data.startsWith('temperature:')) {
         // Temperature
         const temp = parseInt(data.split(':')[1]);
@@ -155,6 +162,20 @@ function updateCityVisual(deviceId, data) {
         } else {
             cityElement.style.backgroundImage = 'url("some_clouds.png")';
         }
+    } else if (data.startsWith('dx:')) {
+        const dx = parseInt(data.split(':')[1]);
+        const currentX = parseFloat(cityContainer.getAttribute('data-x') || 0);
+        const currentY = parseFloat(cityContainer.getAttribute('data-y') || 0);
+        const newX = currentX + dx/100;
+        cityContainer.style.transform = `translate(${newX}px, ${currentY}px)`;
+        cityContainer.setAttribute('data-x', newX);
+    } else if (data.startsWith('dy:')) {
+        const dy = parseInt(data.split(':')[1]);
+        const currentX = parseFloat(cityContainer.getAttribute('data-x') || 0);
+        const currentY = parseFloat(cityContainer.getAttribute('data-y') || 0);
+        const newY = currentY + dy/100;
+        cityContainer.style.transform = `translate(${currentX}px, ${newY}px)`;
+        cityContainer.setAttribute('data-y', newY);
     }
 }
 
@@ -183,6 +204,7 @@ function addCity(cityName, deviceId) {
     const mapContainer = document.getElementById('map-container');
     const cityContainer = document.createElement('div');
     cityContainer.className = 'city-container';
+    cityContainer.setAttribute('data-city', cityName);
     
     const cityElement = document.createElement('div');
     cityElement.className = 'city';
@@ -267,6 +289,8 @@ function updateTerminal(deviceName, message) {
     let interpretation = '';
     if (message === 'S') {
         interpretation = 'Earthquake detected!';
+    } else if (message === 'A') {
+        interpretation = 'Reset position to center';
     } else if (message.startsWith('temperature:')) {
         const temp = parseInt(message.split(':')[1]);
         interpretation = `${temp} ºC`;
@@ -287,12 +311,23 @@ function updateTerminal(deviceName, message) {
             interpretation = 'Normal light';
         }
         interpretation += ` (${light})`;
+    } else if (message.startsWith('dx:')) {
+        const dx = parseInt(message.split(':')[1]);
+        interpretation = `Moved ${dx}px horizontally`;
+    } else if (message.startsWith('dy:')) {
+        const dy = parseInt(message.split(':')[1]);
+        interpretation = `Moved ${dy}px vertically`;
     }
 
     const logEntry = document.createElement('p');
     logEntry.innerHTML = `<span class="time">${time}</span> <span class="city-name">${cityName}</span> <span class="message">${message}</span> <span class="arrow">=></span> <span class="interpretation">${interpretation}</span>`;
     
     terminalContent.appendChild(logEntry);
+    
+    // Truncate old messages if needed
+    while (terminalContent.children.length > MAX_MESSAGES) {
+        terminalContent.removeChild(terminalContent.firstChild);
+    }
     
     // Scroll to the bottom
     terminalContent.scrollTop = terminalContent.scrollHeight;
