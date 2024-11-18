@@ -145,6 +145,27 @@
             height: 100%;
             object-fit: contain;
         }
+        #qr-container {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            text-align: center;
+            z-index: 100;
+        }
+        #qr-container img {
+            width: 100px;
+            height: 100px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        #qr-container a {
+            color: black;
+            display: block;
+            text-decoration: none;
+            font-size: 0.8em;
+            text-shadow: 1px 1px 2px white;
+            max-width: 100px;
+        }
     </style>
 </head>
 <body>
@@ -155,6 +176,12 @@
     </div>
     <div id="controls">
         <button onclick="connect()">Connect to Micro:bit</button>
+    </div>
+    <div id="qr-container">
+        <a href="https://makecode.microbit.org/_aE3daYTD4etq">
+            <img src="QR.png" alt="micro:bit code QR">
+            <span>Scan or click to go to micro:bit sketch</span>
+        </a>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.17/interact.min.js"></script>
     <script src="script.js"></script>
