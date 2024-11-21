@@ -26,6 +26,22 @@ async function initializeCharacteristics(name, server) {
     return { service, rx_characteristic, tx_characteristic };
 }
 
+function startDeviceMonitoring(deviceName) {
+    const deviceInfo = window.devices.get(deviceName);
+    if (!deviceInfo) return;
+
+    deviceInfo.lastMessageTime = Date.now();
+    deviceInfo.monitorInterval = setInterval(() => {
+        const timeSinceLastMessage = Date.now() - deviceInfo.lastMessageTime;
+        console.log(`Time since last message from ${deviceName}: ${timeSinceLastMessage}ms`);
+        if (timeSinceLastMessage > 10000) { // 10 seconds
+            console.log(`No message received from ${deviceName} for ${timeSinceLastMessage}ms`);
+            clearInterval(deviceInfo.monitorInterval);
+            reconnectWithBackoff(deviceInfo.device);
+        }
+    }, 1000);
+}
+
 async function connect() {
     console.log("Connecting to micro:bit...");
     const device = await navigator.bluetooth.requestDevice({
@@ -33,10 +49,6 @@ async function connect() {
         filters: [{ namePrefix: "BBC micro:bit" }],
     });
 
-    device.addEventListener('gattserverdisconnected', async (event) => {
-        console.log('Device disconnected, attempting to reconnect...');
-        await reconnectWithBackoff(event.target);
-    });
 
     const name = device.name.match(name_regex)[1];
     const server = await device.gatt.connect();
@@ -52,19 +64,28 @@ async function connect() {
         tx_characteristic: tx_characteristic,
     });
 
+    // Start monitoring after device is set up
+    startDeviceMonitoring(name);
+
     console.log(`Connected to device: ${name}`);
     addCity(name, name);
 }
 
 async function reconnectWithBackoff(device, maxAttempts = 10) {
+    // Clear existing monitor interval if it exists
+    const deviceEntry = Array.from(window.devices.entries())
+        .find(([_, d]) => d.device === device);
+    if (deviceEntry && deviceEntry[1].monitorInterval) {
+        clearInterval(deviceEntry[1].monitorInterval);
+    }
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
             const server = await device.gatt.connect();
-            console.log('Reconnected on attempt', attempt + 1);
             
             // Find the device name from the devices map
             const deviceEntry = Array.from(window.devices.entries())
-                .find(([_, d]) => d.device === device);
+            .find(([_, d]) => d.device === device);
             if (!deviceEntry) {
                 console.error('Could not find device in devices map');
                 return;
@@ -73,9 +94,9 @@ async function reconnectWithBackoff(device, maxAttempts = 10) {
             
             // Reinitialize characteristics
             const { service, rx_characteristic, tx_characteristic } = 
-                await initializeCharacteristics(name, server);
+            await initializeCharacteristics(name, server);
             
-            // Update device info
+            // Update device info and restart monitoring
             window.devices.set(name, {
                 device: device,
                 server: server,
@@ -83,6 +104,11 @@ async function reconnectWithBackoff(device, maxAttempts = 10) {
                 rx_characteristic: rx_characteristic,
                 tx_characteristic: tx_characteristic,
             });
+            
+            // Restart monitoring after reconnection
+            startDeviceMonitoring(name);
+            
+            console.log('Reconnected on attempt', attempt + 1);
             
             return;
         } catch (error) {
@@ -94,13 +120,18 @@ async function reconnectWithBackoff(device, maxAttempts = 10) {
 }
 
 function onTxCharacteristicValueChanged(name, event) {
+    // Update last message timestamp
+    const deviceInfo = window.devices.get(name);
+    if (deviceInfo) {
+        deviceInfo.lastMessageTime = Date.now();
+    }
+
     let receivedData = [];
     for (var i = 0; i < event.target.value.byteLength; i++) {
         receivedData[i] = event.target.value.getUint8(i);
     }
 
     const receivedString = String.fromCharCode.apply(null, receivedData);
-    console.log(`Received data from ${name}: ${receivedString}`);
     
     const cityData = window.cityMap.get(name);
     if (cityData) {
